@@ -1,62 +1,131 @@
 import torch
 import numpy as np
 from lime.lime_text import LimeTextExplainer
-from transformers import AutoTokenizer
-from src.models.model import DistilBERTClassifier
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# =========================
+# DEVICE
+# =========================
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-MODEL_PATH = "models/checkpoints/best_model.pt"
+# =========================
+# MODEL PATH (FOLDER)
+# =========================
 
-# Load tokenizer and model
+MODEL_PATH = "models/checkpoints/best_model"
+
+# =========================
+# LOAD MODEL + TOKENIZER
+# =========================
+
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
-model = DistilBERTClassifier()
-model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
 model.to(DEVICE)
 model.eval()
 
 class_names = ["legit", "scam"]
 
+# Initialize LIME once
+explainer = LimeTextExplainer(class_names=class_names)
+
+
+# =========================
+# PREDICT PROBA (for LIME)
+# =========================
 
 def predict_proba(texts):
-    """
-    LIME expects a list of texts and returns probability scores.
-    """
     inputs = tokenizer(
         texts,
         padding=True,
         truncation=True,
-        max_length=128,
+        max_length=64,
         return_tensors="pt"
     )
 
-    input_ids = inputs["input_ids"].to(DEVICE)
-    attention_mask = inputs["attention_mask"].to(DEVICE)
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
     with torch.no_grad():
-        outputs = model(input_ids, attention_mask)
-        probs = torch.softmax(outputs, dim=1)
+        outputs = model(**inputs)
+        probs = torch.softmax(outputs.logits, dim=1)
 
     return probs.cpu().numpy()
 
 
-def explain_text(text):
-    explainer = LimeTextExplainer(class_names=class_names)
+# =========================
+# MAIN PREDICT FUNCTION
+# =========================
 
-    explanation = explainer.explain_instance(
+def predict(text, explain=False):
+
+    inputs = tokenizer(
         text,
-        predict_proba,
-        num_features=10
+        padding=True,
+        truncation=True,
+        max_length=64,
+        return_tensors="pt"
     )
 
-    print("\nPrediction Explanation:")
-    for word, weight in explanation.as_list():
-        print(f"{word}: {weight:.4f}")
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
-    return explanation
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = torch.softmax(outputs.logits, dim=1)
 
+    # =========================
+    # THRESHOLD-BASED LOGIC
+    # =========================
+
+    scam_prob = probs[0][1].item()
+
+    if scam_prob >= 0.85:
+        prediction = "scam"
+        confidence = scam_prob
+
+    elif scam_prob >= 0.6:
+        prediction = "likely spam"
+        confidence = scam_prob
+
+    else:
+        prediction = "legit"
+        confidence = 1 - scam_prob
+
+    # =========================
+    # OPTIONAL LIME
+    # =========================
+
+    explanation_words = []
+
+    if explain:
+        explanation = explainer.explain_instance(
+            text,
+            predict_proba,
+            num_features=6,
+            num_samples=30
+        )
+
+        explanation_words = [
+            str(word) for word, weight in explanation.as_list()
+        ]
+
+    return {
+        "prediction": prediction,
+        "confidence": round(confidence, 4),
+        "explanation": explanation_words
+    }
+
+
+# =========================
+# TEST
+# =========================
 
 if __name__ == "__main__":
+
     sample_text = "Hi team, please find attached the meeting minutes from yesterday."
-    explain_text(sample_text)
+
+    print("\n--- WITHOUT EXPLANATION ---")
+    print(predict(sample_text, explain=False))
+
+    print("\n--- WITH EXPLANATION ---")
+    print(predict(sample_text, explain=True))

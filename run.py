@@ -1,9 +1,17 @@
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
-import joblib
-import os
+from typing import Optional, List
+
+from src.explainability.lime_explain import predict
+
+# ✅ IMPORTANT: use your new LIME-based predictor
+from src.explainability.lime_explain import predict
 
 # ------------------------
 # App Initialization
@@ -27,36 +35,18 @@ app.add_middleware(
 )
 
 # ------------------------
-# Load Model Artifacts
-# ------------------------
-
-VECTOR_PATH = "models/tfidf_vectorizer.pkl"
-MODEL_PATH = "models/scam_classifier.pkl"  # This must be provided by Member 2
-
-if not os.path.exists(VECTOR_PATH):
-    raise RuntimeError("TF-IDF vectorizer file not found.")
-
-vectorizer = joblib.load(VECTOR_PATH)
-
-if not os.path.exists(MODEL_PATH):
-    raise RuntimeError(
-        "Classifier model file not found. Expected at models/scam_classifier.pkl"
-    )
-
-model = joblib.load(MODEL_PATH)
-
-# ------------------------
 # Request / Response Schemas
 # ------------------------
 
 class PredictRequest(BaseModel):
-    message: str
+    text: str
+    explain: bool = False  # ✅ NEW
 
 
 class PredictResponse(BaseModel):
-    label: str
+    prediction: str
     confidence: float
-    explanation: Optional[str] = None
+    explanation: Optional[List[str]] = None
 
 
 # ------------------------
@@ -64,23 +54,20 @@ class PredictResponse(BaseModel):
 # ------------------------
 
 @app.post("/predict", response_model=PredictResponse)
-async def predict(request: PredictRequest):
+async def predict_text(request: PredictRequest):
 
-    if not request.message.strip():
+    print(f"Received request: text='{request.text}', explain={request.explain}")
+
+    if not request.text.strip():
         raise HTTPException(status_code=400, detail="Empty message")
 
     try:
-        vector = vectorizer.transform([request.message])
-        prediction = model.predict(vector)
-        probabilities = model.predict_proba(vector)
-
-        label = "scam" if prediction[0] == 1 else "not_scam"
-        confidence = float(max(probabilities[0]))
+        result = predict(request.text, explain=request.explain)
 
         return PredictResponse(
-            label=label,
-            confidence=confidence,
-            explanation="TF-IDF + Trained Classifier"
+            prediction=result["prediction"],
+            confidence=result["confidence"],
+            explanation=result["explanation"]
         )
 
     except Exception as e:

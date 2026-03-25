@@ -1,45 +1,60 @@
 from lime.lime_text import LimeTextExplainer
 import numpy as np
 import torch
-from transformers import AutoTokenizer
-from src.models.model import DistilBERTClassifier
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# =========================
+# DEVICE
+# =========================
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-MODEL_PATH = "models/checkpoints/best_model.pt"
+# =========================
+# MODEL PATH (FOLDER, not .pt)
+# =========================
 
-# Load tokenizer
+MODEL_PATH = "models/checkpoints/best_model"
+
+# =========================
+# LOAD TOKENIZER + MODEL
+# =========================
+
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
-# Load model
-model = DistilBERTClassifier()
-model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
 model.to(DEVICE)
 model.eval()
+
+# =========================
+# LIME EXPLAINER
+# =========================
+
 explainer = LimeTextExplainer(class_names=["legit", "scam"])
 
+# =========================
+# PROBABILITY FUNCTION (for LIME)
+# =========================
+
 def predict_proba(texts):
-    results = []
+    inputs = tokenizer(
+        texts,
+        padding=True,
+        truncation=True,
+        max_length=64,
+        return_tensors="pt"
+    )
 
-    for text in texts:
-        inputs = tokenizer(
-            text,
-            padding=True,
-            truncation=True,
-            max_length=128,
-            return_tensors="pt"
-        )
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
-        input_ids = inputs["input_ids"].to(DEVICE)
-        attention_mask = inputs["attention_mask"].to(DEVICE)
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probabilities = torch.softmax(outputs.logits, dim=1)
 
-        with torch.no_grad():
-            outputs = model(input_ids, attention_mask)
-            probabilities = torch.softmax(outputs, dim=1)
+    return probabilities.cpu().numpy()
 
-        results.append(probabilities.cpu().numpy()[0])
-
-    return np.array(results)
+# =========================
+# MAIN PREDICT FUNCTION
+# =========================
 
 def predict(text: str):
 
@@ -47,22 +62,24 @@ def predict(text: str):
         text,
         padding=True,
         truncation=True,
-        max_length=128,
+        max_length=64,
         return_tensors="pt"
     )
 
-    input_ids = inputs["input_ids"].to(DEVICE)
-    attention_mask = inputs["attention_mask"].to(DEVICE)
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
 
     with torch.no_grad():
-        outputs = model(input_ids, attention_mask)
-        probabilities = torch.softmax(outputs, dim=1)
+        outputs = model(**inputs)
+        probabilities = torch.softmax(outputs.logits, dim=1)
         confidence, predicted_class = torch.max(probabilities, dim=1)
 
     label_map = {0: "legit", 1: "scam"}
     prediction = label_map[predicted_class.item()]
 
-    # LIME explanation
+    # =========================
+    # LIME EXPLANATION
+    # =========================
+
     explanation = explainer.explain_instance(
         text,
         predict_proba,
@@ -77,6 +94,10 @@ def predict(text: str):
         "confidence": round(confidence.item(), 4),
         "explanation": important_words
     }
+
+# =========================
+# TEST
+# =========================
 
 if __name__ == "__main__":
     sample_text = "Urgent! Your bank account has been suspended. Click here to verify immediately."
