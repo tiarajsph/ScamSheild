@@ -43,7 +43,7 @@ function App() {
     const res = await fetch("http://127.0.0.1:8000/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: inputText }),
+      body: JSON.stringify({ text: inputText, explain: true }),
     });
 
     const data = await res.json();
@@ -62,11 +62,11 @@ function App() {
       const res  = await fetch("http://127.0.0.1:8000/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ text: text }),
       });
       const data = await res.json();
       setPrediction(data.prediction.toUpperCase());
-      setIsScam(data.prediction === "scam" ? "scam" : data.prediction === "likely scam" ? "likely" : "legit");
+      setIsScam(data.prediction === "scam" ? "scam" : data.prediction === "likely spam" ? "likely" : "legit");
       setConfidence(data.confidence * 100);
       setExplanation([]);
       setShowExplanation(false);

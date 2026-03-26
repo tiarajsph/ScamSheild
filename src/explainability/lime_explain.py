@@ -79,11 +79,11 @@ def predict(text, explain=False):
 
     scam_prob = probs[0][1].item()
 
-    if scam_prob >= 0.85:
+    if scam_prob >= 0.8:
         prediction = "scam"
         confidence = scam_prob
 
-    elif scam_prob >= 0.6:
+    elif scam_prob >= 0.4:
         prediction = "likely spam"
         confidence = scam_prob
 

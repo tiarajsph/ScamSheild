@@ -14,7 +14,7 @@ TRAIN_PATH = "data/processed/train_encodings.pt"
 TEST_PATH = "data/processed/test_encodings.pt"
 
 BATCH_SIZE = 16
-EPOCHS = 1
+EPOCHS = 5  # Increased from 1 to 5 for better training
 LEARNING_RATE = 2e-5
 
 
