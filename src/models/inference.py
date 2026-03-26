@@ -94,8 +94,25 @@ def predict(text: str):
         num_samples=100
     )
 
-    important_words = [str(word) for word, weight in explanation.as_list()]
+    STOPWORDS = {
+        "this", "that", "for", "with", "and", "the", "you",
+        "your", "from", "into", "have", "has", "using"
+    }
 
+    lime_words = [w for w, _ in explanation.as_list()]
+
+    input_words = text.lower().split()
+
+    important_words = [
+    w for w in input_words
+    if w in lime_words
+    and w.isalpha()
+    and len(w) > 3
+    and w not in STOPWORDS
+    ]
+
+    if not important_words:
+        important_words = input_words[:5]
     return {
         "prediction": prediction,
         "confidence": round(confidence.item(), 4),

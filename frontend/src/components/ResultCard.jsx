@@ -37,17 +37,16 @@ function ResultCard({
   }
 
   // 🔥 Convert keywords → readable sentence
-  const explanationText =
-    explanation.length > 0
-      ? `This message was classified as ${
-          isScam === "scam"
-            ? "a scam"
-            : isScam === "likely"
-            ? "likely a scam"
-            : "legitimate"
-        } because it contains suspicious elements such as: ${explanation.join(", ")}.`
-      : "";
-
+const explanationText =
+  explanation.length > 0
+    ? `This message was classified as ${
+        isScam === "scam"
+          ? "a scam"
+          : isScam === "likely"
+          ? "likely a scam"
+          : "legitimate"
+      } because it contains words like ${explanation.join(", ")}.`
+    : "No strong suspicious patterns detected in the message.";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
@@ -99,22 +98,22 @@ function ResultCard({
             ) : (
               <>
                 {/* Natural sentence */}
-                <p style={{ fontSize: "14px", color: "#444" }}>
+                <p style={{ fontSize: "14px", color: "#444", lineHeight: 1.6 }}>
                   {explanationText}
                 </p>
 
                 {/* Optional tags */}
                 <div className="tags">
-                  {explanation.map((word, i) => (
+                  {explanation.map((reason, i) => (
                     <motion.span
-                      key={word}
+                      key={reason}
                       custom={i}
                       variants={tagVariants}
                       initial="hidden"
                       animate="visible"
                       className="tag"
                     >
-                      {word}
+                      {reason}
                     </motion.span>
                   ))}
                 </div>

@@ -57,7 +57,27 @@ class URLCheckResponse(BaseModel):
 # ------------------------
 # TEXT PREDICTION
 # ------------------------
+def map_explanation_to_reasons(words):
+    cleaned = [
+        w.lower()
+        for w in words
+        if w.isalpha() and len(w) > 2
+    ]
 
+    if not cleaned:
+        return ["no strong suspicious patterns detected"]
+
+    # remove duplicates but keep order
+    seen = set()
+    cleaned_unique = []
+    for w in cleaned:
+        if w not in seen:
+            seen.add(w)
+            cleaned_unique.append(w)
+
+    top_words = cleaned_unique[:6]
+
+    return top_words
 @app.post("/predict", response_model=PredictResponse)
 async def predict_text(request: PredictRequest):
 
@@ -67,15 +87,17 @@ async def predict_text(request: PredictRequest):
     try:
         result = predict(request.message)
 
+        # 🔥 Convert LIME words → human reasons
+        mapped_reasons = map_explanation_to_reasons(result["explanation"])
+
         return PredictResponse(
             prediction=result["prediction"],
             confidence=result["confidence"],
-            explanation=result["explanation"]
+            explanation=mapped_reasons
         )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 # ----------------------------
 # Google Safe Browsing Helper
 # ----------------------------
@@ -141,7 +163,7 @@ async def predict_qr(file: UploadFile = File(...)):
             result = predict(extracted_text)
             prediction = result["prediction"]
             confidence = result["confidence"]
-            explanation = result["explanation"]
+            explanation = map_explanation_to_reasons(result["explanation"])
         os.remove(temp_path)
         return PredictResponse(
             prediction=prediction,
