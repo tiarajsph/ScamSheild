@@ -37,7 +37,7 @@ function App() {
       });
       const data = await res.json();
       setPrediction(data.prediction.toUpperCase());
-      setIsScam(data.prediction === "scam");
+      setIsScam(data.prediction === "scam" ? "scam" : data.prediction === "likely scam" ? "likely" : "legit");
       setConfidence(data.confidence * 100);
       setExplanation(data.explanation || []);
     } catch {
@@ -56,7 +56,7 @@ function App() {
       const data = await res.json();
       if (data.prediction) {
         setPrediction(data.prediction.toUpperCase());
-        setIsScam(data.prediction === "scam");
+        setIsScam(data.prediction === "scam" ? "scam" : data.prediction === "likely scam" ? "likely" : "legit");
         setConfidence(data.confidence ? data.confidence * 100 : 0);
         setExplanation(data.explanation || []);
       } else if (data.url_risks?.length) {
@@ -90,10 +90,10 @@ function App() {
     }
   }, []);
 
-  const shieldEmoji = isScam === true ? "🚫" : isScam === false ? "✅" : "🛡️";
-  const badgeClass  = isScam === true ? "scam" : isScam === false ? "legit" : "neutral";
-  const bgClass     = isScam === true ? "scam-bg" : isScam === false ? "safe-bg" : "";
-  const cardClass   = isScam === true ? "scam-detected" : isScam === false ? "safe-detected" : "";
+  const shieldEmoji = isScam === "scam" ? "🚫" : isScam === "likely" ? "⚠️" : isScam === "legit" ? "✅" : "🛡️";
+  const badgeClass  = isScam === "scam" ? "scam" : isScam === "likely" ? "likely" : isScam === "legit" ? "legit" : "neutral";
+  const bgClass     = isScam === "scam" ? "scam-bg" : isScam === "likely" ? "likely-bg" : isScam === "legit" ? "safe-bg" : "";
+  const cardClass   = isScam === "scam" ? "scam-detected" : isScam === "likely" ? "likely-detected" : isScam === "legit" ? "safe-detected" : "";
 
   const copyReport = () => {
     navigator.clipboard.writeText(

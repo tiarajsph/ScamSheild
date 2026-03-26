@@ -2,7 +2,7 @@ import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 function ResultCard({ isScam, confidence, explanation, loading, tagVariants }) {
-  const fillClass = isScam === true ? "scam" : isScam === false ? "legit" : "neutral";
+  const fillClass = isScam === "scam" ? "scam" : isScam === "likely" ? "likely" : isScam === "legit" ? "legit" : "neutral";
 
   // Nothing to show yet
   if (!loading && isScam === null && confidence === 0 && explanation.length === 0) {

@@ -13,7 +13,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # MODEL PATH (FOLDER, not .pt)
 # =========================
 
-MODEL_PATH = "models/checkpoints/best_model"
+MODEL_PATH = "models/checkpoints/new_model"
 
 # =========================
 # LOAD TOKENIZER + MODEL
@@ -29,7 +29,7 @@ model.eval()
 # LIME EXPLAINER
 # =========================
 
-explainer = LimeTextExplainer(class_names=["legit", "scam"])
+explainer = LimeTextExplainer(class_names=["legit","likely scam","scam"])
 
 # =========================
 # PROBABILITY FUNCTION (for LIME)
@@ -73,7 +73,14 @@ def predict(text: str):
         probabilities = torch.softmax(outputs.logits, dim=1)
         confidence, predicted_class = torch.max(probabilities, dim=1)
 
-    label_map = {0: "legit", 1: "scam"}
+    ###label_map = model.config.id2label
+    ###prediction = label_map[predicted_class.item()]
+    label_map = {
+    0: "legit",
+    1: "likely scam",
+    2: "scam"
+    }
+
     prediction = label_map[predicted_class.item()]
 
     # =========================
