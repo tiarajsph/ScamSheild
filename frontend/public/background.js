@@ -16,18 +16,16 @@ chrome.contextMenus.onClicked.addListener((info) => {
     chrome.storage.local.set({ selectedText: info.selectionText }, () => {
       chrome.windows.create({
         url: "index.html",
-        type: "popup",
-        width: 360,
-        height: 280,
+        type: "normal",
+        state: "maximized"
       });
     });
   } else if (info.menuItemId === "scanQrImage") {
     chrome.storage.local.set({ qrImageUrl: info.srcUrl }, () => {
       chrome.windows.create({
         url: "index.html?qrImage=1",
-        type: "popup",
-        width: 360,
-        height: 280,
+        type: "normal",
+        state: "maximized"
       });
     });
   }
