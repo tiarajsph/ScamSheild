@@ -1,87 +1,137 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-function ResultCard({ isScam, confidence, explanation, loading, tagVariants, activeTab }) {
-  const fillClass = isScam === "scam" ? "scam" : isScam === "likely" ? "likely" : isScam === "legit" ? "legit" : "neutral";
+function ResultCard({
+  isScam,
+  confidence,
+  explanation,
+  loading,
+  tagVariants,
+  activeTab,
+  handleExplain,
+  showExplanation,
+  loadingExplanation
+}) {
+
+  const fillClass =
+    isScam === "scam"
+      ? "scam"
+      : isScam === "likely"
+      ? "likely"
+      : isScam === "legit"
+      ? "legit"
+      : "neutral";
+
   const isQR = activeTab === "qr";
-  // Nothing to show yet
+
+  // Hide empty state
   if (!loading) {
-  if (
-    activeTab === "text" &&
-    isScam === null &&
-    confidence === 0 &&
-    explanation.length === 0
-  ) {
-    return null; // ❌ remove empty section
+    if (
+      activeTab === "text" &&
+      isScam === null &&
+      confidence === 0 &&
+      explanation.length === 0
+    ) return null;
+
+    if (activeTab === "qr" && isScam === null) return null;
   }
 
-  if (activeTab === "qr" && isScam === null) {
-    return null; // ❌ nothing for QR initially
-  }
-}
+  // 🔥 Convert keywords → readable sentence
+  const explanationText =
+    explanation.length > 0
+      ? `This message was classified as ${
+          isScam === "scam"
+            ? "a scam"
+            : isScam === "likely"
+            ? "likely a scam"
+            : "legitimate"
+        } because it contains suspicious elements such as: ${explanation.join(", ")}.`
+      : "";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Confidence bar */}
-      {!isQR && (
-  <div className="confidence-section">
-    <div className="label-row">
-      <span className="label-text">Confidence Score</span>
-      <motion.span
-        className="percentage-text"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {loading ? "—" : `${confidence.toFixed(1)}%`}
-      </motion.span>
-    </div>
 
-    <div className="progress-track">
-      <motion.div
-        className={`progress-fill ${fillClass}`}
-        initial={{ width: 0 }}
-        animate={{ width: loading ? "12%" : `${confidence}%` }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-      />
-    </div>
-  </div>
-)}
-
-      {/* Key Indicators */}
+      {/* Confidence */}
       {!isQR && (
-        <AnimatePresence>
-          {!loading && explanation.length > 0 && (
-            <motion.div
-              className="explanation-section"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
+        <div className="confidence-section">
+          <div className="label-row">
+            <span className="label-text">Confidence Score</span>
+            <motion.span
+              className="percentage-text"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
             >
-              <span className="section-label">Key Indicators</span>
-              <div className="tags">
-                {explanation.map((word, i) => (
-                  <motion.span
-                    key={word}
-                    custom={i}
-                    variants={tagVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="tag"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </div>
-            </motion.div>
-          )}
+              {loading ? "—" : `${confidence.toFixed(1)}%`}
+            </motion.span>
+          </div>
+
+          <div className="progress-track">
+            <motion.div
+              className={`progress-fill ${fillClass}`}
+              initial={{ width: 0 }}
+              animate={{ width: loading ? "12%" : `${confidence}%` }}
+              transition={{ duration: 1 }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 View Explanation Button */}
+      {!isQR && !loading && isScam !== null && (
+        <button className="btn btn-ghost" onClick={handleExplain}>
+          {showExplanation ? "Hide Explanation" : "View Explanation"}
+        </button>
+      )}
+
+      {/* 🔥 Explanation */}
+      {!isQR && showExplanation && (
+        <AnimatePresence>
+          <motion.div
+            className="explanation-section"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            <span className="section-label">Explanation</span>
+
+            {loadingExplanation ? (
+              <p className="empty-text pulse">Generating explanation...</p>
+            ) : (
+              <>
+                {/* Natural sentence */}
+                <p style={{ fontSize: "14px", color: "#444" }}>
+                  {explanationText}
+                </p>
+
+                {/* Optional tags */}
+                <div className="tags">
+                  {explanation.map((word, i) => (
+                    <motion.span
+                      key={word}
+                      custom={i}
+                      variants={tagVariants}
+                      initial="hidden"
+                      animate="visible"
+                      className="tag"
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
+                </div>
+              </>
+            )}
+          </motion.div>
         </AnimatePresence>
       )}
+
+      {/* QR */}
       {isQR && !loading && (
-  <div className="empty-state">
-    <p className="empty-text">Link scanned using Safe Browsing</p>
-  </div>
-)}
+        <div className="empty-state">
+          <p className="empty-text">
+            Link scanned using Safe Browsing
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -25,6 +25,35 @@ function App() {
   const [explanation, setExplanation] = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  const handleExplain = async () => {
+  if (showExplanation) {
+    setShowExplanation(false);
+    return;
+  }
+
+  if (!inputText) return;
+
+  setLoadingExplanation(true);
+  setShowExplanation(true);
+
+  try {
+    const res = await fetch("http://127.0.0.1:8000/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: inputText }),
+    });
+
+    const data = await res.json();
+    setExplanation(data.explanation || []);
+  } catch {
+    setExplanation(["Failed to load explanation"]);
+  } finally {
+    setLoadingExplanation(false);
+  }
+};
 
   async function analyzeText(text) {
     if (!text) return;
@@ -39,7 +68,8 @@ function App() {
       setPrediction(data.prediction.toUpperCase());
       setIsScam(data.prediction === "scam" ? "scam" : data.prediction === "likely scam" ? "likely" : "legit");
       setConfidence(data.confidence * 100);
-      setExplanation(data.explanation || []);
+      setExplanation([]);
+      setShowExplanation(false);
     } catch {
       setPrediction("Error"); setIsScam(null); setConfidence(0); setExplanation([]);
     } finally { setLoading(false); }
@@ -172,6 +202,9 @@ function App() {
           loading={loading}
           tagVariants={tagVariants}
           activeTab={activeTab}
+          handleExplain={handleExplain}
+          showExplanation={showExplanation}
+          loadingExplanation={loadingExplanation}
         />
         </div>
 
