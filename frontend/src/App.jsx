@@ -75,6 +75,7 @@ function App() {
     setPrediction(""); setLoading(false);
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("qrImage")) {
+      setActiveTab("qr");
       chrome.storage?.local.get(["qrImageUrl"], (res) => {
         if (res?.qrImageUrl) {
           setLoading(true); setPrediction("Analyzing…");
@@ -140,7 +141,7 @@ function App() {
 
       {/* ── Scrollable content ── */}
       <div className="app-body">
-        <div className={`card ${cardClass}`}>
+        <div className={`card ${cardClass} ${activeTab === "qr" ? "card-compact" : ""}`}>
 
           {/* Input tab */}
           {activeTab === "text" ? (
@@ -164,13 +165,14 @@ function App() {
           <div className="divider" />
 
           {/* Result */}
-          <ResultCard
-            isScam={activeTab === "text" ? isScam : null}
-            confidence={activeTab === "text" ? confidence : 0}
-            explanation={activeTab === "text" ? explanation : []}
-            loading={loading}
-            tagVariants={tagVariants}
-          />
+        <ResultCard
+          isScam={isScam}
+          confidence={confidence}
+          explanation={explanation}
+          loading={loading}
+          tagVariants={tagVariants}
+          activeTab={activeTab}
+        />
         </div>
 
         {/* Actions below the card */}
