@@ -12,3 +12,4 @@ pyzbar
 pillow
 Pillow
 python-dotenv
+requests
