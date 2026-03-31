@@ -127,16 +127,16 @@ async def predict_text(request: PredictRequest):
         raise HTTPException(status_code=400, detail="Empty message")
 
     try:
-        # Always request explanation
-        result = predict(request.message, explain=True)
+        # Only compute explanation if explicitly requested
+        result = predict(request.message, explain=request.explain)
 
-        # 🔥 Convert LIME words → human reasons
-        mapped_reasons = map_explanation_to_reasons(result["explanation"])
+        # 🔥 Convert LIME words → human reasons (only if explanation was computed)
+        mapped_reasons = map_explanation_to_reasons(result["explanation"]) if request.explain else []
 
         return PredictResponse(
             prediction=result["prediction"],
             confidence=result["confidence"],
-            explanation=mapped_reasons
+            explanation=mapped_reasons if request.explain else None
         )
 
     except Exception as e:
@@ -153,8 +153,11 @@ async def url_check(request: URLCheckRequest):
 # ------------------------
 # QR PREDICTION ENDPOINT
 # ------------------------
+class QRCheckRequest(BaseModel):
+    explain: bool = False
+
 @app.post("/predict-qr", response_model=PredictResponse)
-async def predict_qr(file: UploadFile = File(...)):
+async def predict_qr(file: UploadFile = File(...), explain: bool = False):
     try:
         temp_path = "temp_qr.png"
         with open(temp_path, "wb") as buffer:
@@ -172,11 +175,11 @@ async def predict_qr(file: UploadFile = File(...)):
             # Only run Google Safe Browsing check for URLs
             url_risks = [google_safe_browsing_check(extracted_text)]
         else:
-            # Only run ML prediction for plain text
-            result = predict(extracted_text)
+            # Only run ML prediction for plain text (with optional explanation)
+            result = predict(extracted_text, explain=explain)
             prediction = result["prediction"]
             confidence = result["confidence"]
-            explanation = map_explanation_to_reasons(result["explanation"])
+            explanation = map_explanation_to_reasons(result["explanation"]) if explain else []
         os.remove(temp_path)
         return PredictResponse(
             prediction=prediction,

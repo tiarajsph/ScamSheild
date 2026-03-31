@@ -48,7 +48,7 @@ function App() {
       const res = await fetch("http://127.0.0.1:8000/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: inputText }),
+        body: JSON.stringify({ message: inputText, explain: true }),
       });
 
       const data = await res.json();
@@ -68,7 +68,7 @@ function App() {
       const res = await fetch("http://127.0.0.1:8000/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, explain: false }),
       });
       const data = await res.json();
       setPrediction(data.prediction.toUpperCase());
@@ -102,6 +102,7 @@ function App() {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("explain", "false");
       const res = await fetch("http://127.0.0.1:8000/predict-qr", {
         method: "POST",
         body: fd,
