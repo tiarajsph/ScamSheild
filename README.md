@@ -1,4 +1,4 @@
-# ScamShield 🛡️
+# ScamSheild 🛡️
 
 ScamShield is a phishing detection system that uses a fine-tuned **DistilBERT** model to classify messages as legitimate or scam/phishing.
 
